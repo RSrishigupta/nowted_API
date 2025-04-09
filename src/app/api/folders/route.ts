@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
       if (!name || typeof name !== 'string') {
         return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
       }
-
       const result = await pool.query(
         `INSERT INTO folders (user_id, name)
          VALUES ($1, $2)
