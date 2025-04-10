@@ -31,9 +31,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       await pool.query(
         `UPDATE folders
          SET deleted_at = CURRENT_TIMESTAMP
-         WHERE id = $1`,
-        [folderId]
-      );
+         WHERE id = $1
+         `,
+         [folderId]
+        );
+        await pool.query(
+          `UPDATE notes 
+           set deletedAt = CURRENT_TIMESTAMP
+           WHERE folderId = $1 
+           `,
+           [folderId]
+          );
 
       return NextResponse.json({ message: 'Folder deleted successfuly' });
     } else {

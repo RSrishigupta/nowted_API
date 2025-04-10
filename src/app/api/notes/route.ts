@@ -55,3 +55,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  const token = req.cookies.get('token')?.value;
+
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
+  }
+
+  try {
+    const decoded = verifyToken(token);
+
+    if (typeof decoded !== 'object' || !('userId' in decoded)) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const userId = decoded.userId as string;
+    const body = await req.json();
+    const { folderId, title, content } = body;
+
+    if (!folderId || !title) {
+      return NextResponse.json({ error: 'folderId and title are required' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO notes (userId, folderId, title, content)
+       VALUES ($1, $2, $3, $4)
+        returning *`,
+      [userId, folderId, title, content]
+    );
+
+    return NextResponse.json({ note: result.rows[0] }, { status: 201 });
+
+  } catch (err) {
+    console.error('POST /api/notes error:', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
