@@ -2,59 +2,60 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { verifyToken } from '@/lib/auth';
 
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get('token')?.value;
+// export async function GET(req: NextRequest) {
+//   const token = req.cookies.get('token')?.value;
 
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized: No token found' }, { status: 401 });
-  }
+//   if (!token) {
+//     return NextResponse.json({ error: 'Unauthorized: No token found' }, { status: 401 });
+//   }
 
-  try {
-    const decoded = verifyToken(token);
+//   try {
+//     const decoded = verifyToken(token);
 
-    if (typeof decoded !== 'object' || !('userId' in decoded)) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
+//     if (typeof decoded !== 'object' || !('userId' in decoded)) {
+//       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+//     }
 
-    const userId = decoded.userId as string;
-    const { searchParams } = new URL(req.url);
+//     const userId = decoded.userId as string;
+//     const { searchParams } = new URL(req.url);
 
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const folderId = searchParams.get('folderId');
-    const isFavourite = searchParams.get('isFavourite');
-    const isArchive = searchParams.get('isArchive');
+//     const limit = parseInt(searchParams.get('limit') || '10', 10);
+//     const folderId = searchParams.get('folderId');
+//     const isFavourite = searchParams.get('isFavourite');
+//     const isArchive = searchParams.get('isArchive');
 
-    let query = `
-      SELECT * FROM notes
-      WHERE userId = $1 AND deletedAt IS NULL
-    `;
-    const values: (string|number)[] = [userId];
-    let paramIndex = 2;
+//     let query = `
+//       SELECT * FROM notes
+//       WHERE userId = $1 AND deletedAt IS NULL
+//     `;
+//     const values: (string|number)[] = [userId];
+//     let paramIndex = 2;
 
-    if (folderId) {
-      query += ` AND folderId = $${paramIndex}`;
-      values.push(folderId);
-      paramIndex++;
-    }
+//     if (folderId) {
+//       query += ` AND folderId = $${paramIndex}`;
+//       values.push(folderId);
+//       paramIndex++;
+//     }
 
-    if (isFavourite === 'true') {
-      query += ` AND isFavourite = true`;
-    }
+//     if (isFavourite === 'true') {
+//       query += ` AND isFavourite = true`;
+//     }
 
-    if (isArchive === 'true') {
-      query += ` AND isArchive = true`;
-    }
+//     if (isArchive === 'true') {
+//       query += ` AND isArchive = true`;
+//     }
 
-    query += ` ORDER BY updatedAt DESC LIMIT $${paramIndex}`;
-    values.push(limit);
+//     query += ` ORDER BY updatedAt DESC LIMIT $${paramIndex}`;
+//     values.push(limit);
 
-    const result = await pool.query(query, values);
-    return NextResponse.json({ notes: result.rows });
-  } catch (err) {
-    console.error('GET /api/notes error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
+//     const result = await pool.query(query, values);
+    
+//     return NextResponse.json({ notes: result.rows});
+//   } catch (err) {
+//     console.error('GET /api/notes error:', err);
+//     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+//   }
+// }
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('token')?.value;
@@ -90,5 +91,85 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('POST /api/notes error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+export async function GET(req: NextRequest) {
+  const token = req.cookies.get('token')?.value;
+
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized: No token found' }, { status: 401 });
+  }
+
+  try {
+    const decoded = verifyToken(token);
+
+    if (typeof decoded !== 'object' || !('userId' in decoded)) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const userId = decoded.userId as string;
+    const { searchParams } = new URL(req.url);
+
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const folderId = searchParams.get('folderId');
+    const isFavourite = searchParams.get('isFavourite');
+    const isArchive = searchParams.get('isArchive');
+
+    let query = `
+      SELECT 
+        n.id, n.folderId, n.title, n.content, n.isfavourite, n.isarchive,
+        n.createdat, n.updatedat, n.deletedat,
+        f.id AS folder_id, f.name AS folder_name, f.createdat AS folder_createdat,
+        f.updatedat AS folder_updatedat, f.deletedat AS folder_deletedat
+      FROM notes n
+      LEFT JOIN folders f ON n.folderId = f.id
+      WHERE n.userId = $1 AND n.deletedAt IS NULL
+    `;
+    const values: (string | number)[] = [userId];
+    let paramIndex = 2;
+
+    if (folderId) {
+      query += ` AND n.folderId = $${paramIndex}`;
+      values.push(folderId);
+      paramIndex++;
+    }
+
+    if (isFavourite === 'true') {
+      query += ` AND n.isFavourite = true`;
+    }
+
+    if (isArchive === 'true') {
+      query += ` AND n.isArchive = true`;
+    }
+
+    query += ` ORDER BY n.updatedAt DESC LIMIT $${paramIndex}`;
+    values.push(limit);
+
+    const result = await pool.query(query, values);
+
+    const formattedNotes = result.rows.map((row) => ({
+      id: row.id,
+      folderId: row.folder_id,
+      title: row.title,
+      isFavorite: row.isfavourite,
+      isArchived: row.isarchive,
+      createdAt: row.createdat,
+      updatedAt: row.updatedat,
+      deletedAt: row.deletedat,
+      preview: row.content?.substring(0, 100) || '', // Optional preview snippet
+      folder: {
+        id: row.folder_id,
+        name: row.folder_name,
+        createdAt: row.folder_createdat,
+        updatedAt: row.folder_updatedat,
+        deletedAt: row.folder_deletedat,
+      }
+    }));
+
+    return NextResponse.json({ notes: formattedNotes });
+
+  } catch (err) {
+    console.error('GET /api/notes error:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

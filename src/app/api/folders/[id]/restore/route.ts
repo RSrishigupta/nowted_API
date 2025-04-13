@@ -22,8 +22,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const result = await pool.query(
       `
       UPDATE folders
-      SET deleted_at = NULL
-      WHERE id = $1 AND user_id = $2
+      SET deletedAt = NULL
+      WHERE id = $1 AND userId = $2
       RETURNING *
       `,
       [folderId, userId]

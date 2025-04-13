@@ -19,7 +19,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
       // First check if the folder belongs to the user
       const check = await pool.query(
-        'SELECT * FROM folders WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+        'SELECT * FROM folders WHERE id = $1 AND userId = $2 AND deletedAt IS NULL',
         [folderId, userId]
       );
 
@@ -30,7 +30,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
    
       await pool.query(
         `UPDATE folders
-         SET deleted_at = CURRENT_TIMESTAMP
+         SET deletedAt = CURRENT_TIMESTAMP
          WHERE id = $1
          `,
          [folderId]
@@ -78,7 +78,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   
         // Check if folder belongs to the user
         const check = await pool.query(
-          'SELECT * FROM folders WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL',
+          'SELECT * FROM folders WHERE id = $1 AND userId = $2 AND deletedAt IS NULL',
           [folderId, userId]
         );
   
@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         // Rename the folder
         const result = await pool.query(
           `UPDATE folders
-           SET name = $1, updated_at = CURRENT_TIMESTAMP
+           SET name = $1, updatedAt = CURRENT_TIMESTAMP
            WHERE id = $2
            RETURNING *`,
           [name, folderId]

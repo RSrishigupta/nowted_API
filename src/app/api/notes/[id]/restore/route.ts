@@ -26,7 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     `, [noteId, userId]);
     await pool.query(
       `UPDATE folders
-       SET deleted_at = NULL
+       SET deletedAt = NULL
        WHERE id=(select folderId from notes where id=$1)
        `,[noteId]
       );

@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       const userId = decoded.userId as string;
 
       const result = await pool.query(
-        'SELECT * FROM folders WHERE user_id = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+        'SELECT * FROM folders WHERE userId = $1 AND deletedAt IS NULL ORDER BY createdAt DESC',
         [userId]
       );
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
       }
       const result = await pool.query(
-        `INSERT INTO folders (user_id, name)
+        `INSERT INTO folders (userId, name)
          VALUES ($1, $2)
          RETURNING *`,
         [userId, name]
