@@ -14,29 +14,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Get user by username
-    const result = await pool.query(
-      'SELECT * FROM users WHERE username = $1',
-      [username]
-    );
-
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     const user = result.rows[0];
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Compare the plain password with hashed password
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-    }
-
-    // Generate token
     const token = signToken({ userId: user.id, username: user.username });
 
-    const response = NextResponse.json({ message: 'Login successful' });
+    const response = NextResponse.json({ message: 'Login successful' }, { status: 200 }); // ✅ Explicit 200
     response.cookies.set('token', token, {
       httpOnly: true,
       path: '/',
